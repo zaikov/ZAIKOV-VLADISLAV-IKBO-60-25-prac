@@ -17,19 +17,25 @@
 Ввод и вывод каждой команды отображаются в окне, как в терминале.
 Сообщения об ошибках выделяются красным цветом.
 
+При запуске эмулятор выводит (в окно и в терминал) все параметры запуска
+и источник каждого значения — отладочный вывод серым цветом.
+
 ## Структура проекта
 
 ```
 src/shell_emulator/
     __main__.py   точка входа
+    config.py     параметры командной строки и INI-файла
     gui.py        графический интерфейс (tkinter)
+    script.py     чтение стартового скрипта
     shell.py      парсер и команды (не зависит от GUI)
-tests/
-    test_shell.py модульные тесты
+tests/            модульные тесты
+examples/         конфигурационные файлы и стартовые скрипты
+scripts/          скрипты ОС для проверки параметров запуска
 run.sh            запуск эмулятора и тестов
 ```
 
-## Команды
+## Команды эмулятора
 
 | Команда | Описание |
 |---|---|
@@ -39,35 +45,100 @@ run.sh            запуск эмулятора и тестов
 
 Неизвестная команда вызывает ошибку `имя: command not found`.
 
+## Параметры запуска
+
+| Параметр | Описание |
+|---|---|
+| `--vfs PATH` | Путь к физическому расположению VFS. |
+| `--script PATH` | Путь к стартовому скрипту. |
+| `--config PATH` | Путь к конфигурационному файлу INI. |
+| `--help` | Справка по параметрам. |
+
+Значения из командной строки имеют приоритет над значениями из файла.
+Относительные пути считаются от текущего каталога.
+Неизвестный параметр или параметр без значения — ошибка, эмулятор
+не запускается (код возврата 2).
+
+### Конфигурационный файл
+
+Формат INI, параметры задаются в секции `[emulator]`, оба необязательны:
+
+```ini
+[emulator]
+vfs_path = vfs/default.csv
+script_path = examples/start.txt
+```
+
+Ошибки (файл не найден, неверный формат INI, нет секции `[emulator]`)
+выводятся в окно, а эмулятор продолжает работу с параметрами из командной
+строки.
+
+### Стартовый скрипт
+
+Текстовый файл с командами эмулятора, по одной на строку. Пустые строки
+и строки, начинающиеся с `#`, пропускаются. Скрипт выполняется сразу после
+запуска; в окне отображаются и ввод, и вывод, как при диалоге
+с пользователем. На первой ошибке выполнение останавливается
+с сообщением `script: PATH: line N: execution stopped`, после чего
+эмулятор продолжает работу в интерактивном режиме.
+
 ## Сборка и запуск
 
-Нужен Python 3.8+ с поддержкой `tkinter`. Сборка не требуется.
+Нужен Python 3.10+ с поддержкой `tkinter`. Сборка не требуется.
 
 ```bash
 ./run.sh
+./run.sh --config examples/config.ini
+./run.sh --vfs vfs/default.csv --script examples/start.txt
 ```
 
 ## Тесты
+
+Модульные тесты:
 
 ```bash
 ./run.sh test
 ```
 
+Скрипты ОС для ручной проверки параметров запуска (каждый запускает
+эмулятор несколько раз; чтобы перейти к следующему запуску, введите `exit`
+или закройте окно):
+
+| Скрипт | Что проверяет |
+|---|---|
+| `scripts/test_params.sh` | каждый параметр по отдельности и все вместе, `exit` из скрипта |
+| `scripts/test_priority.sh` | приоритет командной строки над файлом |
+| `scripts/test_errors.sh` | `--help`, неверные параметры, ошибки INI и стартового скрипта |
+
 ## Примеры использования
+
+Интерактивный режим:
 
 ```
 zaikov@macbook:~$ ls -l /home
 ls: called with arguments: -l /home
 zaikov@macbook:~$ ls -z
 ls: invalid option -- 'z'
-zaikov@macbook:~$ cd /tmp
-cd: called with arguments: /tmp
 zaikov@macbook:~$ cd a b
 cd: too many arguments
 zaikov@macbook:~$ pwd
 pwd: command not found
-zaikov@macbook:~$ exit abc
-exit: abc: numeric argument required
 zaikov@macbook:~$ exit
 exit
+```
+
+Запуск со стартовым скриптом, содержащим ошибку
+(`./run.sh --config examples/config.ini --script examples/start_error.txt`):
+
+```
+[debug] config_path = examples/config.ini
+[debug] vfs_path = vfs/default.csv (config file)
+[debug] script_path = examples/start_error.txt (command line)
+zaikov@macbook:~$ ls -l
+ls: called with arguments: -l
+zaikov@macbook:~$ cd /tmp
+cd: called with arguments: /tmp
+zaikov@macbook:~$ cd a b
+cd: too many arguments
+script: examples/start_error.txt: line 4: execution stopped
 ```

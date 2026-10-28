@@ -5,6 +5,8 @@ import socket
 import tkinter as tk
 from tkinter import scrolledtext
 
+from shell_emulator.config import describe
+from shell_emulator.script import read_script
 from shell_emulator.shell import ShellError
 
 FONT = ("Menlo", 13)
@@ -12,6 +14,7 @@ BACKGROUND = "#1e1e1e"
 FOREGROUND = "#d4d4d4"
 ERROR_COLOR = "#f14c4c"
 PROMPT_COLOR = "#6a9955"
+DEBUG_COLOR = "#808080"
 
 
 def get_user_host():
@@ -44,6 +47,7 @@ class EmulatorApp:
         )
         self.output.tag_config("error", foreground=ERROR_COLOR)
         self.output.tag_config("prompt", foreground=PROMPT_COLOR)
+        self.output.tag_config("debug", foreground=DEBUG_COLOR)
         self.output.pack(fill=tk.BOTH, expand=True)
 
     def _build_input(self):
@@ -96,6 +100,40 @@ class EmulatorApp:
             self.write(result + "\n")
         if not self.shell.running:
             self.root.destroy()
+        return True
+
+    def show_settings(self, settings):
+        """Вывести параметры запуска и ошибки чтения конфигурации.
+
+        :param settings: объект :class:`~shell_emulator.config.Settings`.
+        """
+        for line in describe(settings):
+            self.write(line + "\n", "debug")
+        for error in settings.errors:
+            self.write(error + "\n", "error")
+
+    def run_script(self, path):
+        """Выполнить стартовый скрипт, показывая ввод и вывод команд.
+
+        Выполнение останавливается на первой ошибке.
+
+        :param path: путь к файлу скрипта.
+        :return: ``True``, если скрипт выполнен без ошибок.
+        """
+        try:
+            commands = read_script(path)
+        except ShellError as error:
+            self.write(f"{error}\n", "error")
+            return False
+        for number, line in commands:
+            if not self.run_command(line):
+                self.write(
+                    f"script: {path}: line {number}: execution stopped\n",
+                    "error",
+                )
+                return False
+            if not self.shell.running:
+                break
         return True
 
     def _on_enter(self, _event):
