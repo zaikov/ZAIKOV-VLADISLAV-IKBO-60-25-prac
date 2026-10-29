@@ -8,7 +8,9 @@ from tkinter import scrolledtext
 from shell_emulator.config import describe
 from shell_emulator.script import read_script
 from shell_emulator.shell import ShellError
+from shell_emulator.vfs import VfsError
 
+# Оформление окна в стиле тёмного терминала.
 FONT = ("Menlo", 13)
 BACKGROUND = "#1e1e1e"
 FOREGROUND = "#d4d4d4"
@@ -19,6 +21,8 @@ DEBUG_COLOR = "#808080"
 
 def get_user_host():
     """Вернуть строку ``username@hostname`` по реальным данным ОС."""
+    # getuser() берёт имя из переменных окружения или системной базы
+    # пользователей, gethostname() — сетевое имя компьютера.
     return f"{getpass.getuser()}@{socket.gethostname()}"
 
 
@@ -45,6 +49,7 @@ class EmulatorApp:
             self.root, state=tk.DISABLED, wrap=tk.WORD, font=FONT,
             bg=BACKGROUND, fg=FOREGROUND, relief=tk.FLAT,
         )
+        # Теги задают цвет отдельных фрагментов текста.
         self.output.tag_config("error", foreground=ERROR_COLOR)
         self.output.tag_config("prompt", foreground=PROMPT_COLOR)
         self.output.tag_config("debug", foreground=DEBUG_COLOR)
@@ -64,6 +69,7 @@ class EmulatorApp:
             highlightthickness=0,
         )
         self.entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        # По нажатию Enter выполняем введённую команду.
         self.entry.bind("<Return>", self._on_enter)
         self.entry.focus_set()
 
@@ -75,9 +81,12 @@ class EmulatorApp:
         """Добавить текст в поле вывода.
 
         :param text: выводимый текст.
-        :param tag: имя тега оформления (``"error"``, ``"prompt"``).
+        :param tag: имя тега оформления (``"error"``, ``"prompt"``,
+            ``"debug"``).
         """
         tags = (tag,) if tag else ()
+        # Поле вывода закрыто для редактирования пользователем, поэтому
+        # на время записи его нужно временно открыть.
         self.output.configure(state=tk.NORMAL)
         self.output.insert(tk.END, text, tags)
         self.output.see(tk.END)
@@ -89,6 +98,7 @@ class EmulatorApp:
         :param line: строка с командой.
         :return: ``True``, если команда выполнилась без ошибки.
         """
+        # Сначала повторяем ввод с приглашением, как это делает терминал.
         self.write(self.prompt(), "prompt")
         self.write(line + "\n")
         try:
@@ -98,6 +108,7 @@ class EmulatorApp:
             return False
         if result:
             self.write(result + "\n")
+        # После команды exit закрываем окно.
         if not self.shell.running:
             self.root.destroy()
         return True
@@ -111,6 +122,28 @@ class EmulatorApp:
             self.write(line + "\n", "debug")
         for error in settings.errors:
             self.write(error + "\n", "error")
+
+    def load_vfs(self, path):
+        """Загрузить VFS и сообщить о результате в окне.
+
+        :param path: путь к CSV-файлу VFS или ``None``.
+        """
+        if not path:
+            self.write("[debug] VFS: default (empty)\n", "debug")
+            return
+        try:
+            self.shell.load_vfs(path)
+        except VfsError as error:
+            # При ошибке эмулятор продолжает работу с VFS по умолчанию.
+            self.write(f"{error}\n", "error")
+            self.write("[debug] VFS: default (empty)\n", "debug")
+            return
+        dirs, files, depth = self.shell.vfs.stats()
+        self.write(
+            f"[debug] VFS loaded from {path}: {dirs} directories, "
+            f"{files} files, depth {depth}\n",
+            "debug",
+        )
 
     def run_script(self, path):
         """Выполнить стартовый скрипт, показывая ввод и вывод команд.
@@ -132,6 +165,8 @@ class EmulatorApp:
                     "error",
                 )
                 return False
+            # Если в скрипте встретился exit, окно уже закрыто —
+            # остальные команды выполнять не нужно.
             if not self.shell.running:
                 break
         return True
@@ -141,4 +176,5 @@ class EmulatorApp:
         line = self.entry.get()
         self.entry.delete(0, tk.END)
         self.run_command(line)
+        # "break" не даёт tkinter обработать Enter ещё раз по умолчанию.
         return "break"

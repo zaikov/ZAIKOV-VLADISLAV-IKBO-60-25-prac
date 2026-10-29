@@ -2,6 +2,7 @@
 
 from shell_emulator.shell import ShellError
 
+# Строки, начинающиеся с этого символа, — комментарии, как в sh.
 COMMENT_PREFIX = "#"
 
 
@@ -25,6 +26,8 @@ def read_script(path):
     except UnicodeDecodeError:
         raise ShellError(f"script: {path}: invalid encoding") from None
     commands = []
+    # Номера строк нумеруем с 1 и сохраняем, чтобы в сообщении
+    # об ошибке указать строку так, как её видно в редакторе.
     for number, line in enumerate(lines, start=1):
         text = line.strip()
         if text and not text.startswith(COMMENT_PREFIX):

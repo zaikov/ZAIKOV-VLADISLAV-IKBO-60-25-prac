@@ -15,7 +15,10 @@ def main(argv=None):
 
     :param argv: аргументы командной строки; по умолчанию ``sys.argv[1:]``.
     """
+    # При неверных параметрах argparse сам печатает ошибку и завершает
+    # программу с кодом 2 — окно в этом случае не открывается.
     settings = load_settings(argv)
+    # Отладочный вывод параметров дублируем в терминал.
     for line in describe(settings) + settings.errors:
         print(line)
     root = tk.Tk()
@@ -23,7 +26,10 @@ def main(argv=None):
     shell = Shell()
     app = EmulatorApp(root, shell)
     app.show_settings(settings)
+    app.load_vfs(settings.vfs_path)
     if settings.script_path:
+        # Скрипт запускаем, когда окно уже отрисовано: так команда exit
+        # из скрипта корректно закроет окно внутри mainloop.
         root.after_idle(app.run_script, settings.script_path)
     root.mainloop()
     return shell.exit_code

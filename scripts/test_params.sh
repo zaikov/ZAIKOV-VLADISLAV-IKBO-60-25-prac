@@ -13,10 +13,10 @@ run() {
 }
 
 run "Без параметров"
-run "Только --vfs" --vfs vfs/default.csv
+run "Только --vfs" --vfs vfs/minimal.csv
 run "Только --script" --script examples/start.txt
 run "Только --config" --config examples/config.ini
-run "Все три параметра" --vfs vfs/cli.csv \
+run "Все три параметра" --vfs vfs/several.csv \
     --script examples/start_short.txt --config examples/config.ini
 run "exit из стартового скрипта (ожидается код 5)" \
     --script examples/start_exit.txt

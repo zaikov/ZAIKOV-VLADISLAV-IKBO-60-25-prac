@@ -1,0 +1,15 @@
+path,type,content
+/home,dir,
+/home/user,dir,
+/home/user/.bashrc,file,ZXhwb3J0IFBTMT0nJCAnCg==
+/home/user/docs,dir,
+/home/user/docs/notes.txt,file,0KHQv9C40YHQvtC6INC00LXQuzoKMS4g0KHQtNCw0YLRjCDRjdGC0LDQvyAzCg==
+/home/user/docs/projects,dir,
+/home/user/docs/projects/report.txt,file,0J7RgtGH0ZHRgiDQv9C+INC/0YDQsNC60YLQuNGH0LXRgdC60L7QuSDRgNCw0LHQvtGC0LUuCg==
+/home/user/docs/projects/logo.png,file,iVBORw0KGgoAAAANSUhEUg==
+/etc,dir,
+/etc/passwd,file,cm9vdDp4OjA6MDpyb290Oi9yb290Oi9iaW4vc2gKdXNlcjp4OjEwMDA6MTAwMDo6L2hvbWUvdXNlcjovYmluL3NoCg==
+/var,dir,
+/var/log,dir,
+/var/log/syslog,file,T2N0IDI5IDEwOjAwOjAwIGVtdWxhdG9yOiBzdGFydGVkCg==
+/tmp,dir,

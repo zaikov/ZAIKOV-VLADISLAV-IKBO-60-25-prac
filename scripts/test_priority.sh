@@ -14,7 +14,7 @@ run() {
 
 run "Оба значения из файла" --config examples/config.ini
 run "--vfs из командной строки, скрипт из файла" \
-    --config examples/config.ini --vfs vfs/cli.csv
+    --config examples/config.ini --vfs vfs/several.csv
 run "--script из командной строки, VFS из файла" \
     --config examples/config.ini --script examples/start_short.txt
 run "В файле только VFS, скрипт из командной строки" \

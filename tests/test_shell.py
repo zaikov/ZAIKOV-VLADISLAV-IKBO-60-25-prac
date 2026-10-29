@@ -51,6 +51,11 @@ class ShellTest(unittest.TestCase):
         with self.assertRaisesRegex(ShellError, "invalid option -- 'z'"):
             self.shell.execute("ls -z")
 
+    def test_ls_long_option(self):
+        """Длинные ключи ls не поддерживаются."""
+        with self.assertRaisesRegex(ShellError, "unrecognized option"):
+            self.shell.execute("ls --help")
+
     def test_cd_stub(self):
         """cd выводит своё имя и аргумент."""
         self.assertEqual(

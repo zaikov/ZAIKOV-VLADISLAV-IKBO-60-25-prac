@@ -18,7 +18,9 @@
 Сообщения об ошибках выделяются красным цветом.
 
 При запуске эмулятор выводит (в окно и в терминал) все параметры запуска
-и источник каждого значения — отладочный вывод серым цветом.
+и источник каждого значения — отладочный вывод серым цветом. Затем
+загружается виртуальная файловая система (VFS) и выполняется стартовый
+скрипт, если они заданы.
 
 ## Структура проекта
 
@@ -29,9 +31,11 @@ src/shell_emulator/
     gui.py        графический интерфейс (tkinter)
     script.py     чтение стартового скрипта
     shell.py      парсер и команды (не зависит от GUI)
+    vfs.py        виртуальная файловая система: загрузка из CSV
 tests/            модульные тесты
 examples/         конфигурационные файлы и стартовые скрипты
-scripts/          скрипты ОС для проверки параметров запуска
+scripts/          скрипты ОС для проверки параметров запуска и VFS
+vfs/              примеры VFS (в vfs/invalid/ — файлы с ошибками)
 run.sh            запуск эмулятора и тестов
 ```
 
@@ -39,11 +43,62 @@ run.sh            запуск эмулятора и тестов
 
 | Команда | Описание |
 |---|---|
-| `ls [-l] [-a] [путь...]` | Заглушка: выводит имя и аргументы. Неизвестный ключ — ошибка `ls: invalid option`. |
+| `ls [-l] [-a] [путь...]` | Заглушка: выводит имя и аргументы. Неизвестный ключ — ошибка `ls: invalid option`, длинный ключ (`--help`) — `ls: unrecognized option`. |
 | `cd [путь]` | Заглушка: выводит имя и аргумент. Больше одного аргумента — ошибка `cd: too many arguments`. |
 | `exit [код]` | Закрывает эмулятор. Код возврата берётся по модулю 256, как в bash. Нечисловой код — ошибка `exit: X: numeric argument required`. |
 
+| `vfs-init` | Заменяет текущую VFS на VFS по умолчанию (пустой корень `/`) и очищает CSV-файл VFS: в нём остаётся только строка заголовка. Аргументы не принимает. |
+
 Неизвестная команда вызывает ошибку `имя: command not found`.
+
+## Виртуальная файловая система (VFS)
+
+VFS загружается из CSV-файла (параметр `--vfs` или `vfs_path` в INI)
+целиком в память; все операции выполняются только в памяти, файл
+не распаковывается и не изменяется. Единственное исключение — служебная
+команда `vfs-init`.
+
+Формат CSV — строка заголовка и по одной строке на каждый элемент:
+
+```csv
+path,type,content
+/home,dir,
+/home/user,dir,
+/home/user/notes.txt,file,0KHQv9C40YHQvtC6INC00LXQuwo=
+```
+
+| Столбец | Значение |
+|---|---|
+| `path` | Абсолютный путь элемента. |
+| `type` | `dir` — каталог, `file` — файл. |
+| `content` | Содержимое файла в base64 (подходит и для двоичных данных); у каталогов пусто. |
+
+**Вложенность** задаётся самим путём: `/home/user/notes.txt` лежит
+в каталоге `/home/user`, который лежит в `/home`. Корень `/` существует
+всегда и в файле не указывается. Каждый родительский каталог должен быть
+описан отдельной строкой; порядок строк не важен.
+
+Если VFS не задана или не загрузилась, используется VFS по умолчанию —
+пустой корневой каталог. Ошибки загрузки выводятся в окно:
+
+| Ошибка | Пример сообщения |
+|---|---|
+| Файл не найден | `vfs: x.csv: file not found` |
+| Неверный заголовок | `vfs: x.csv: invalid header, expected: path,type,content` |
+| Неверное число столбцов | `vfs: x.csv: line 2: expected 3 columns, got 2` |
+| Неизвестный тип | `vfs: x.csv: line 2: unknown type 'symlink', expected dir/file` |
+| Неверный base64 | `vfs: x.csv: line 2: invalid base64 content` |
+| Нет родительского каталога | `vfs: x.csv: line 2: parent directory /home/user not found` |
+| Неверный или повторяющийся путь | `vfs: x.csv: line 2: invalid path 'home/a.txt'` |
+
+Примеры в папке `vfs/`:
+
+| Файл | Содержимое |
+|---|---|
+| `minimal.csv` | один файл в корне |
+| `several.csv` | несколько файлов и каталогов, двоичный файл `data.bin` |
+| `deep.csv` | 5 уровней вложенности: `/home/user/docs/projects/report.txt` |
+| `invalid/*.csv` | по одному файлу на каждый вид ошибки формата |
 
 ## Параметры запуска
 
@@ -65,7 +120,7 @@ run.sh            запуск эмулятора и тестов
 
 ```ini
 [emulator]
-vfs_path = vfs/default.csv
+vfs_path = vfs/deep.csv
 script_path = examples/start.txt
 ```
 
@@ -89,7 +144,7 @@ script_path = examples/start.txt
 ```bash
 ./run.sh
 ./run.sh --config examples/config.ini
-./run.sh --vfs vfs/default.csv --script examples/start.txt
+./run.sh --vfs vfs/deep.csv --script examples/start.txt
 ```
 
 ## Тесты
@@ -109,6 +164,11 @@ script_path = examples/start.txt
 | `scripts/test_params.sh` | каждый параметр по отдельности и все вместе, `exit` из скрипта |
 | `scripts/test_priority.sh` | приоритет командной строки над файлом |
 | `scripts/test_errors.sh` | `--help`, неверные параметры, ошибки INI и стартового скрипта |
+| `scripts/test_vfs.sh` | VFS разных видов, ошибки загрузки, `vfs-init` и стартовый скрипт `examples/start_all.txt` со всеми командами |
+
+`vfs-init` очищает CSV-файл VFS, поэтому `scripts/test_vfs.sh` работает
+с копиями файлов во временном каталоге — примеры в `vfs/` не меняются.
+Запускайте `examples/start_all.txt` тоже только с копией VFS.
 
 ## Примеры использования
 
@@ -132,8 +192,9 @@ exit
 
 ```
 [debug] config_path = examples/config.ini
-[debug] vfs_path = vfs/default.csv (config file)
+[debug] vfs_path = vfs/deep.csv (config file)
 [debug] script_path = examples/start_error.txt (command line)
+[debug] VFS loaded from vfs/deep.csv: 8 directories, 6 files, depth 5
 zaikov@macbook:~$ ls -l
 ls: called with arguments: -l
 zaikov@macbook:~$ cd /tmp

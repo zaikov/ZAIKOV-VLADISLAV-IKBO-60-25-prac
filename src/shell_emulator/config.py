@@ -7,8 +7,11 @@ import argparse
 import configparser
 from dataclasses import dataclass, field
 
+# Секция INI-файла, из которой читаются параметры.
 INI_SECTION = "emulator"
+# Параметры, которые можно задать и в командной строке, и в файле.
 PARAMS = ("vfs_path", "script_path")
+# Подписи источников значений для отладочного вывода.
 SOURCE_CLI = "command line"
 SOURCE_FILE = "config file"
 
@@ -62,6 +65,8 @@ def read_ini(path):
     """
     parser = configparser.ConfigParser()
     try:
+        # read_file, в отличие от read, сообщает об отсутствии файла
+        # исключением, а не молча пропускает его.
         with open(path, encoding="utf-8") as file:
             parser.read_file(file)
     except FileNotFoundError:
@@ -69,6 +74,7 @@ def read_ini(path):
     except OSError as error:
         raise ConfigError(f"config: {path}: {error.strerror}") from None
     except (configparser.Error, UnicodeDecodeError) as error:
+        # Сообщение configparser бывает многострочным, берём первую строку.
         reason = str(error).splitlines()[0]
         raise ConfigError(
             f"config: {path}: invalid INI format: {reason}"
@@ -76,6 +82,7 @@ def read_ini(path):
     if not parser.has_section(INI_SECTION):
         raise ConfigError(f"config: {path}: missing [{INI_SECTION}] section")
     section = parser[INI_SECTION]
+    # Пустые значения (vfs_path =) считаем незаданными.
     return {name: section[name] for name in PARAMS if section.get(name)}
 
 
@@ -87,13 +94,18 @@ def load_settings(argv=None):
     """
     args = build_arg_parser().parse_args(argv)
     settings = Settings(config_path=args.config_path)
+    # Приоритет реализован порядком применения: сначала значения
+    # из файла, затем поверх них — из командной строки.
     if args.config_path:
         try:
             file_values = read_ini(args.config_path)
         except ConfigError as error:
+            # Ошибка конфигурации не прерывает запуск: она будет
+            # показана в окне, а параметры командной строки сработают.
             settings.errors.append(str(error))
             file_values = {}
         _apply(settings, file_values, SOURCE_FILE)
+    # argparse записывает None для параметров, которые не были указаны.
     cli_values = {
         name: getattr(args, name) for name in PARAMS
         if getattr(args, name) is not None
