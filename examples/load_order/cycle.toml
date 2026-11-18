@@ -1,0 +1,7 @@
+# Цикл из трёх пакетов: A -> B -> C -> A.
+package_name = "A"
+repository = "examples/test_repos/cycle.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

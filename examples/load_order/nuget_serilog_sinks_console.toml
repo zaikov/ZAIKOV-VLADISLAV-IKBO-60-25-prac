@@ -1,0 +1,7 @@
+# Реальный пакет NuGet: Serilog.Sinks.Console.
+package_name = "Serilog.Sinks.Console"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

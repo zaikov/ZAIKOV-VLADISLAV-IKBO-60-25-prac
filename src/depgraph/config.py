@@ -1,12 +1,14 @@
 """Загрузка и проверка конфигурации из файла формата TOML.
 
-Конфигурационный файл содержит пять обязательных параметров::
+Конфигурационный файл содержит пять обязательных параметров
+и необязательный ``load_order``::
 
     package_name = "Serilog.Sinks.Console"
     repository = "https://api.nuget.org/v3/index.json"
     test_mode = false
     output_file = "graph.svg"
     ascii_tree = true
+    load_order = false
 
 Все найденные ошибки собираются в один список, чтобы пользователь
 увидел их сразу, а не исправлял по одной.
@@ -25,7 +27,11 @@ FIELD_TYPES = {
     "test_mode": bool,
     "output_file": str,
     "ascii_tree": bool,
+    "load_order": bool,
 }
+# Необязательные параметры: если не заданы, берётся значение
+# по умолчанию из класса Config.
+OPTIONAL_FIELDS = ("load_order",)
 TYPE_NAMES = {
     str: "строка",
     bool: "логическое значение true/false",
@@ -59,10 +65,8 @@ class Config:
     test_mode: bool
     output_file: str
     ascii_tree: bool
-
-    def items(self):
-        """Вернуть пары ``(ключ, значение)`` в порядке ``FIELD_TYPES``."""
-        return [(name, getattr(self, name)) for name in FIELD_TYPES]
+    # Режим вывода порядка загрузки зависимостей вместо графа.
+    load_order: bool = False
 
 
 def load_config(path):
@@ -109,7 +113,8 @@ def check_keys(data):
     """Найти отсутствующие и неизвестные параметры."""
     errors = [
         f"{key}: обязательный параметр не задан"
-        for key in FIELD_TYPES if key not in data
+        for key in FIELD_TYPES
+        if key not in data and key not in OPTIONAL_FIELDS
     ]
     errors += [
         f"{key}: неизвестный параметр"

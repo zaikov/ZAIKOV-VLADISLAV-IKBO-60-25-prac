@@ -1,0 +1,7 @@
+# Общая зависимость: D нужен и пакету B, и пакету C.
+package_name = "A"
+repository = "examples/test_repos/simple.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

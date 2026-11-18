@@ -1,0 +1,7 @@
+# Несколько циклов, в том числе вложенных.
+package_name = "A"
+repository = "examples/test_repos/many_cycles.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

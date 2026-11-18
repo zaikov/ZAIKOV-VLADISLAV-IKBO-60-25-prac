@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 from depgraph.__main__ import (
-    EXIT_CONFIG_ERROR, EXIT_OK, EXIT_REPOSITORY_ERROR, main,
+    EXIT_CONFIG_ERROR, EXIT_CYCLE, EXIT_OK, EXIT_REPOSITORY_ERROR, main,
 )
 from depgraph.nuget import NugetError
 
@@ -30,15 +30,17 @@ class MainTest(unittest.TestCase):
             file.write(text)
         return path
 
-    def make_config(self, package, repository, test_mode):
+    def make_config(self, package, repository, test_mode, load_order=False):
         """Создать конфигурационный файл с заданными параметрами."""
         mode = "true" if test_mode else "false"
+        order = "true" if load_order else "false"
         return self.make_file("config.toml", (
             f'package_name = "{package}"\n'
             f'repository = "{repository}"\n'
             f"test_mode = {mode}\n"
             f'output_file = "graph.svg"\n'
             f"ascii_tree = false\n"
+            f"load_order = {order}\n"
         ))
 
     def run_main(self, config):
@@ -64,6 +66,29 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, EXIT_REPOSITORY_ERROR)
         self.assertEqual(out, "")
         self.assertIn("B в файле не описан", err)
+
+    def test_load_order(self):
+        """Режим load_order выводит порядок загрузки вместо графа."""
+        repo = self.make_file("repo.txt", "A: B C\nB: C\nC:\n")
+        code, out, _ = self.run_main(
+            self.make_config("A", repo, True, load_order=True)
+        )
+        self.assertEqual(code, EXIT_OK)
+        self.assertEqual(out.splitlines(), [
+            "Порядок загрузки зависимостей пакета A:",
+            "  1. C",
+            "  2. B",
+            "  3. A (анализируемый пакет)",
+        ])
+
+    def test_load_order_cycle(self):
+        """При цикле в режиме load_order — код 4."""
+        repo = self.make_file("repo.txt", "A: B\nB: A\n")
+        code, out, _ = self.run_main(
+            self.make_config("A", repo, True, load_order=True)
+        )
+        self.assertEqual(code, EXIT_CYCLE)
+        self.assertIn("нельзя определить", out)
 
     def test_nuget_graph(self):
         """Граф реального репозитория строится через NugetClient."""

@@ -1,0 +1,6 @@
+# Многоуровневый ромб: E нужен D, D нужен B и C, B и C нужны A.
+package_name = "A"
+repository = "examples/test_repos/diamond.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

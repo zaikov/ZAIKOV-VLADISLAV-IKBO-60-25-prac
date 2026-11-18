@@ -60,11 +60,15 @@ class LoadConfigTest(ConfigTestCase):
         self.assertFalse(config.test_mode)
         self.assertTrue(config.ascii_tree)
 
-    def test_items_order(self):
-        """Параметры выводятся в порядке описания."""
-        config = load_config(self.make_config())
-        keys = [key for key, _ in config.items()]
-        self.assertEqual(keys, list(VALID_CONFIG))
+    def test_load_order_optional(self):
+        """Необязательный load_order по умолчанию выключен."""
+        self.assertFalse(load_config(self.make_config()).load_order)
+        config = load_config(self.make_config(load_order="true"))
+        self.assertTrue(config.load_order)
+
+    def test_load_order_type(self):
+        """load_order должен быть логическим значением."""
+        self.assert_error("load_order: ожидается", load_order='"yes"')
 
     def test_test_mode(self):
         """В тестовом режиме repository — путь к существующему файлу."""

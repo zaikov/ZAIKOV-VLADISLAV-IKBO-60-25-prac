@@ -1,0 +1,7 @@
+# Длинная цепочка транзитивных зависимостей: 5 уровней.
+package_name = "A"
+repository = "examples/test_repos/chain.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

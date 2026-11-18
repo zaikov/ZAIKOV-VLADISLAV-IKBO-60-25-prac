@@ -1,0 +1,7 @@
+# Пакеты X и Y не связаны с A и в граф не попадают, их цикл не выводится.
+package_name = "A"
+repository = "examples/test_repos/unreachable.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false
+load_order = true

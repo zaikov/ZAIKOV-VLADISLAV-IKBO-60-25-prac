@@ -6,12 +6,14 @@ import sys
 from depgraph.config import ConfigError, load_config
 from depgraph.graph import build_graph, format_graph
 from depgraph.nuget import NugetClient, NugetError
+from depgraph.order import format_load_order
 from depgraph.repo_file import RepoFileError, load_repo_file, make_lookup
 
 DEFAULT_CONFIG = "config.toml"
 EXIT_OK = 0
 EXIT_CONFIG_ERROR = 1
 EXIT_REPOSITORY_ERROR = 3
+EXIT_CYCLE = 4
 
 
 def build_parser():
@@ -74,9 +76,23 @@ def main(argv=None):
     except (NugetError, RepoFileError) as error:
         print_error(str(error))
         return EXIT_REPOSITORY_ERROR
+    if config.load_order:
+        return print_load_order(graph)
     for line in format_graph(graph):
         print(line)
     return EXIT_OK
+
+
+def print_load_order(graph):
+    """Вывести порядок загрузки зависимостей и вернуть код завершения.
+
+    При циклических зависимостях порядок полностью определить нельзя,
+    поэтому, как и реальный менеджер NuGet, возвращаем код ошибки.
+    """
+    lines, has_cycle = format_load_order(graph)
+    for line in lines:
+        print(line)
+    return EXIT_CYCLE if has_cycle else EXIT_OK
 
 
 if __name__ == "__main__":
