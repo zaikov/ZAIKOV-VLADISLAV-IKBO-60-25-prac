@@ -1,0 +1,6 @@
+# Ошибка: репозиторий задан не как http(s)-адрес.
+package_name = "Serilog"
+repository = "ftp://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

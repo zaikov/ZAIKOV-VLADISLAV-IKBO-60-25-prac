@@ -1,0 +1,6 @@
+# Ошибка: имя пакета длиннее 100 символов.
+package_name = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

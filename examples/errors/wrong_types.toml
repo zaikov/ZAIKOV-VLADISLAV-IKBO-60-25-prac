@@ -1,0 +1,6 @@
+# Ошибка: неверные типы значений у всех параметров.
+package_name = 42
+repository = ["https://api.nuget.org/v3/index.json"]
+test_mode = "false"
+output_file = 1.5
+ascii_tree = 1

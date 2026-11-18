@@ -1,0 +1,6 @@
+# Ошибка: пустые строковые значения.
+package_name = ""
+repository = "  "
+test_mode = false
+output_file = ""
+ascii_tree = true

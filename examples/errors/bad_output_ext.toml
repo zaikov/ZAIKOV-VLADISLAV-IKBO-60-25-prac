@@ -1,0 +1,6 @@
+# Ошибка: изображение графа должно сохраняться в формате SVG.
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.png"
+ascii_tree = true

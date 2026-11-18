@@ -1,0 +1,13 @@
+# Конфигурация по умолчанию: реальный репозиторий NuGet.
+# Используется, если запустить ./run.sh без параметра -c.
+
+# Имя анализируемого пакета.
+package_name = "Serilog.Sinks.Console"
+# URL-адрес репозитория (или путь к файлу, если test_mode = true).
+repository = "https://api.nuget.org/v3/index.json"
+# Режим работы с тестовым репозиторием.
+test_mode = false
+# Имя файла, в который будет сохранено изображение графа.
+output_file = "graph.svg"
+# Выводить ли зависимости в виде ASCII-дерева.
+ascii_tree = true

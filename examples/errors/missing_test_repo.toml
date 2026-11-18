@@ -1,0 +1,6 @@
+# Ошибка: файл тестового репозитория не существует.
+package_name = "A"
+repository = "examples/no_such_repo.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = true

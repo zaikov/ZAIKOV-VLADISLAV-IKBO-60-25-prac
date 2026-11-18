@@ -1,0 +1,7 @@
+# Тестовый режим: вместо URL указан путь к файлу описания графа,
+# пакеты в нём называются большими латинскими буквами.
+package_name = "A"
+repository = "examples/test_repo.txt"
+test_mode = true
+output_file = "test_graph.svg"
+ascii_tree = false

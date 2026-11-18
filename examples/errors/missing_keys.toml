@@ -1,0 +1,3 @@
+# Ошибка: заданы не все параметры (нет test_mode, output_file, ascii_tree).
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3/index.json"

@@ -1,0 +1,7 @@
+# Ошибка: неизвестный параметр output_format.
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true
+output_format = "png"

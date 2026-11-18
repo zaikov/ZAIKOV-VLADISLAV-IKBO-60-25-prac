@@ -1,0 +1,6 @@
+# Ошибка: каталог для файла с изображением не существует.
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "no_such_dir/graph.svg"
+ascii_tree = true

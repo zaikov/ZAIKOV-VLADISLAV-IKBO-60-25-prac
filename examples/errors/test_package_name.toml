@@ -1,0 +1,6 @@
+# Ошибка: в тестовом режиме имя пакета — только большие латинские буквы.
+package_name = "Serilog"
+repository = "examples/test_repo.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = true

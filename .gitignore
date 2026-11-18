@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Сгенерированные изображения графов
+*.svg
+
+# Редакторы и ОС
+.vscode/
+.idea/
+.DS_Store

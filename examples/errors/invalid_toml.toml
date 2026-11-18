@@ -1,0 +1,3 @@
+# Ошибка: файл не является корректным TOML (нет закрывающей кавычки).
+package_name = "Serilog
+repository = "https://api.nuget.org/v3/index.json"
