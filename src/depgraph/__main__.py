@@ -8,12 +8,14 @@ from depgraph.graph import build_graph, format_graph
 from depgraph.nuget import NugetClient, NugetError
 from depgraph.order import format_load_order
 from depgraph.repo_file import RepoFileError, load_repo_file, make_lookup
+from depgraph.visualize import RenderError, ascii_tree, render_svg, to_dot
 
 DEFAULT_CONFIG = "config.toml"
 EXIT_OK = 0
 EXIT_CONFIG_ERROR = 1
 EXIT_REPOSITORY_ERROR = 3
 EXIT_CYCLE = 4
+EXIT_RENDER_ERROR = 5
 
 
 def build_parser():
@@ -78,9 +80,35 @@ def main(argv=None):
         return EXIT_REPOSITORY_ERROR
     if config.load_order:
         return print_load_order(graph)
+    return visualize(graph, config)
+
+
+def visualize(graph, config):
+    """Вывести граф и его визуализацию, вернуть код завершения.
+
+    Выводятся сводка по графу и его описание на языке Graphviz,
+    изображение сохраняется в SVG, а при ``ascii_tree = true``
+    выводится ещё и ASCII-дерево зависимостей.
+    """
     for line in format_graph(graph):
         print(line)
-    return EXIT_OK
+    dot_text = to_dot(graph)
+    print()
+    print("Описание графа на языке Graphviz (DOT):")
+    print(dot_text, end="")
+    code = EXIT_OK
+    try:
+        render_svg(dot_text, config.output_file)
+        print(f"Изображение графа сохранено в {config.output_file}")
+    except RenderError as error:
+        print_error(str(error))
+        code = EXIT_RENDER_ERROR
+    if config.ascii_tree:
+        print()
+        print("ASCII-дерево зависимостей:")
+        for line in ascii_tree(graph):
+            print(line)
+    return code
 
 
 def print_load_order(graph):

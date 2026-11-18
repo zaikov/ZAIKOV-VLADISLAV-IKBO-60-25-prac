@@ -1,0 +1,6 @@
+# Тестовый репозиторий с несколькими циклами: связи циклов выделены красным.
+package_name = "A"
+repository = "examples/test_repos/many_cycles.txt"
+test_mode = true
+output_file = "docs/images/test_many_cycles.svg"
+ascii_tree = true

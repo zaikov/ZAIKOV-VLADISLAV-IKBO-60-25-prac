@@ -1,0 +1,6 @@
+# Реальный пакет: 11 пакетов, общие зависимости на нескольких уровнях.
+package_name = "Serilog.Sinks.Console"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "docs/images/serilog_sinks_console.svg"
+ascii_tree = true

@@ -8,9 +8,11 @@ import unittest
 from unittest import mock
 
 from depgraph.__main__ import (
-    EXIT_CONFIG_ERROR, EXIT_CYCLE, EXIT_OK, EXIT_REPOSITORY_ERROR, main,
+    EXIT_CONFIG_ERROR, EXIT_CYCLE, EXIT_OK, EXIT_RENDER_ERROR,
+    EXIT_REPOSITORY_ERROR, main,
 )
 from depgraph.nuget import NugetError
+from depgraph.visualize import RenderError
 
 NUGET_URL = "https://api.nuget.org/v3/index.json"
 
@@ -30,24 +32,44 @@ class MainTest(unittest.TestCase):
             file.write(text)
         return path
 
-    def make_config(self, package, repository, test_mode, load_order=False):
-        """Создать конфигурационный файл с заданными параметрами."""
-        mode = "true" if test_mode else "false"
-        order = "true" if load_order else "false"
-        return self.make_file("config.toml", (
-            f'package_name = "{package}"\n'
-            f'repository = "{repository}"\n'
-            f"test_mode = {mode}\n"
-            f'output_file = "graph.svg"\n'
-            f"ascii_tree = false\n"
-            f"load_order = {order}\n"
-        ))
+    def make_config(self, package, repository, test_mode, **flags):
+        """Создать конфигурационный файл с заданными параметрами.
 
-    def run_main(self, config):
-        """Запустить main с конфигурацией и вернуть (код, stdout, stderr)."""
+        ``flags`` — логические параметры ``ascii_tree`` и ``load_order``,
+        по умолчанию выключенные.
+        """
+        values = {"test_mode": test_mode, "ascii_tree": False,
+                  "load_order": False, **flags}
+        lines = [
+            f'package_name = "{package}"',
+            f'repository = "{repository}"',
+            f'output_file = "{self.output_file()}"',
+        ]
+        lines += [
+            f"{key} = {'true' if value else 'false'}"
+            for key, value in values.items()
+        ]
+        return self.make_file("config.toml", "\n".join(lines) + "\n")
+
+    def output_file(self):
+        """Вернуть путь к файлу SVG во временном каталоге."""
+        return os.path.join(self.tmp.name, "graph.svg")
+
+    def run_main(self, config, render_error=None):
+        """Запустить main и вернуть (код, stdout, stderr).
+
+        Вызов Graphviz подменяется, чтобы тесты не зависели от того,
+        установлен ли он; ``render_error`` имитирует его ошибку.
+        """
         out, err = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        with (
+            mock.patch("depgraph.__main__.render_svg") as render,
+            contextlib.redirect_stdout(out),
+            contextlib.redirect_stderr(err),
+        ):
+            render.side_effect = render_error
             code = main(["-c", config])
+        self.render = render
         return code, out.getvalue(), err.getvalue()
 
     def test_test_mode_graph(self):
@@ -58,6 +80,34 @@ class MainTest(unittest.TestCase):
         self.assertIn("пакетов 3, связей 3", out)
         self.assertIn("  [1] B -> A, C", out)
         self.assertIn("  A -> B -> A", out)
+
+    def test_visualization(self):
+        """Выводятся описание DOT и сообщение о сохранённом SVG."""
+        repo = self.make_file("repo.txt", "A: B\nB:\n")
+        code, out, _ = self.run_main(self.make_config("A", repo, True))
+        self.assertEqual(code, EXIT_OK)
+        self.assertIn('    "A" -> "B";', out)
+        self.assertIn(f"сохранено в {self.output_file()}", out)
+        self.assertNotIn("ASCII-дерево", out)
+        dot_text, path = self.render.call_args.args
+        self.assertTrue(dot_text.startswith('digraph "A"'))
+        self.assertEqual(path, self.output_file())
+
+    def test_ascii_tree(self):
+        """При ascii_tree = true выводится ASCII-дерево."""
+        repo = self.make_file("repo.txt", "A: B\nB:\n")
+        config = self.make_config("A", repo, True, ascii_tree=True)
+        _, out, _ = self.run_main(config)
+        self.assertIn("ASCII-дерево зависимостей:\nA\n└── B\n", out)
+
+    def test_render_error(self):
+        """Ошибка Graphviz — код 5, остальной вывод сохраняется."""
+        repo = self.make_file("repo.txt", "A:\n")
+        config = self.make_config("A", repo, True, ascii_tree=True)
+        code, out, err = self.run_main(config, RenderError("нет dot"))
+        self.assertEqual(code, EXIT_RENDER_ERROR)
+        self.assertIn("Ошибка: нет dot", err)
+        self.assertIn("ASCII-дерево", out)
 
     def test_test_mode_error(self):
         """Ошибка файла репозитория — код 3."""

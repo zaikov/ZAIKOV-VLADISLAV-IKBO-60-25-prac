@@ -1,0 +1,6 @@
+# Реальный пакет: 16 пакетов и 43 связи, много общих зависимостей.
+package_name = "Dapper"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "docs/images/dapper.svg"
+ascii_tree = true

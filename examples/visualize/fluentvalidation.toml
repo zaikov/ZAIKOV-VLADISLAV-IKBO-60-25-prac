@@ -1,0 +1,6 @@
+# Реальный пакет без зависимостей: граф из одной вершины.
+package_name = "FluentValidation"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "docs/images/fluentvalidation.svg"
+ascii_tree = true
