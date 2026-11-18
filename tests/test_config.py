@@ -5,9 +5,16 @@ import io
 import os
 import tempfile
 import unittest
+from unittest import mock
 
-from depgraph.__main__ import EXIT_CONFIG_ERROR, EXIT_OK, main
+from depgraph.__main__ import (
+    EXIT_CONFIG_ERROR, EXIT_OK, EXIT_REPOSITORY_ERROR, format_dependencies,
+    main,
+)
 from depgraph.config import ConfigError, format_value, load_config
+from depgraph.nuget import (
+    Dependency, DependencyGroup, NugetError, PackageInfo,
+)
 
 VALID_CONFIG = {
     "package_name": '"Serilog.Sinks.Console"',
@@ -223,14 +230,42 @@ class MainTest(ConfigTestCase):
             code = main(argv)
         return code, out.getvalue(), err.getvalue()
 
-    def test_prints_all_params(self):
-        """При запуске выводятся все параметры в формате ключ = значение."""
-        code, out, _ = self.run_main(["-c", self.make_config()])
+    def test_prints_dependencies(self):
+        """При запуске выводятся прямые зависимости пакета."""
+        package = PackageInfo("Serilog.Sinks.Console", "6.0.0", [
+            DependencyGroup("net8.0", [Dependency("Serilog", "4.0.0")]),
+        ])
+        with mock.patch("depgraph.__main__.NugetClient") as client:
+            client.return_value.get_package.return_value = package
+            code, out, _ = self.run_main(["-c", self.make_config()])
         self.assertEqual(code, EXIT_OK)
-        self.assertIn("package_name = Serilog.Sinks.Console", out)
-        self.assertIn("test_mode = false", out)
-        self.assertIn("ascii_tree = true", out)
-        self.assertEqual(len(out.splitlines()), len(VALID_CONFIG))
+        client.assert_called_once_with("https://api.nuget.org/v3/index.json")
+        self.assertIn("Пакет: Serilog.Sinks.Console 6.0.0", out)
+        self.assertIn("Serilog (>= 4.0.0)", out)
+        self.assertIn("Всего прямых зависимостей: 1", out)
+
+    def test_no_dependencies(self):
+        """Пакет без зависимостей."""
+        lines = format_dependencies(PackageInfo("Solo", "1.0"))
+        self.assertEqual(lines[-1], "Прямых зависимостей нет")
+
+    def test_repository_error(self):
+        """Ошибка репозитория — код 3 и сообщение в stderr."""
+        with mock.patch("depgraph.__main__.NugetClient") as client:
+            client.return_value.get_package.side_effect = NugetError("нет")
+            code, _, err = self.run_main(["-c", self.make_config()])
+        self.assertEqual(code, EXIT_REPOSITORY_ERROR)
+        self.assertIn("Ошибка: нет", err)
+
+    def test_test_mode_not_supported(self):
+        """Тестовый режим на этапе 2 ещё не поддерживается."""
+        repo = self.make_file("repo.txt", "A:\n")
+        path = self.make_config(
+            package_name='"A"', repository=f'"{repo}"', test_mode="true",
+        )
+        code, _, err = self.run_main(["-c", path])
+        self.assertEqual(code, EXIT_CONFIG_ERROR)
+        self.assertIn("этапе 3", err)
 
     def test_error_exit_code(self):
         """При ошибке конфигурации — код 1 и сообщение в stderr."""

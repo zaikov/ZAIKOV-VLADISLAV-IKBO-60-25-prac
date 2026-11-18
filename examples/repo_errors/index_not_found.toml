@@ -1,0 +1,6 @@
+# Ошибка: индекс служб по этому адресу не существует (HTTP 404).
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3/no-such-index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

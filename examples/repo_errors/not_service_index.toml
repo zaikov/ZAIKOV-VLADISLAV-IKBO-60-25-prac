@@ -1,0 +1,6 @@
+# Ошибка: JSON по адресу не является индексом служб NuGet.
+package_name = "Serilog"
+repository = "https://api.nuget.org/v3-flatcontainer/serilog/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

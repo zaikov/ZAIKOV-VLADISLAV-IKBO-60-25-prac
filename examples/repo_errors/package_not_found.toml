@@ -1,0 +1,6 @@
+# Ошибка: пакет не найден в репозитории.
+package_name = "No.Such.Package.Xyz"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

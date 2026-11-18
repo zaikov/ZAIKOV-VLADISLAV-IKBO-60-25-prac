@@ -1,0 +1,6 @@
+# Разные наборы зависимостей для разных платформ .NET.
+package_name = "Microsoft.Extensions.Logging"
+repository = "https://api.nuget.org/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

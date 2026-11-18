@@ -1,0 +1,6 @@
+# Ошибка: сервер недоступен (такого домена не существует).
+package_name = "Serilog"
+repository = "https://nuget.invalid/v3/index.json"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true

@@ -1,0 +1,6 @@
+# Ошибка: по адресу находится HTML-страница, а не JSON.
+package_name = "Serilog"
+repository = "https://www.nuget.org/"
+test_mode = false
+output_file = "graph.svg"
+ascii_tree = true
