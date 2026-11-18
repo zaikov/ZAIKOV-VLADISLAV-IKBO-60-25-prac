@@ -1,0 +1,6 @@
+# Ошибка: зависимость C в файле не описана.
+package_name = "A"
+repository = "examples/test_repos/errors/unknown_dependency.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

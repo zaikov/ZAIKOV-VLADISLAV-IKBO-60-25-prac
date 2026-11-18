@@ -1,0 +1,6 @@
+# Ошибка: анализируемый пакет Z в файле не описан.
+package_name = "Z"
+repository = "examples/test_repos/simple.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

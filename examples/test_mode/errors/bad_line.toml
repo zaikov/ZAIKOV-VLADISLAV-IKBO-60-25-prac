@@ -1,0 +1,6 @@
+# Ошибка: строка без двоеточия.
+package_name = "A"
+repository = "examples/test_repos/errors/bad_line.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

@@ -65,13 +65,6 @@ class Config:
         return [(name, getattr(self, name)) for name in FIELD_TYPES]
 
 
-def format_value(value):
-    """Представить значение параметра так, как оно записывается в TOML."""
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    return str(value)
-
-
 def load_config(path):
     """Прочитать и проверить конфигурационный файл.
 

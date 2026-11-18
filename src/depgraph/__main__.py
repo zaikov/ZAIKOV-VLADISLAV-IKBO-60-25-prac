@@ -4,13 +4,14 @@ import argparse
 import sys
 
 from depgraph.config import ConfigError, load_config
-from depgraph.nuget import NugetClient, NugetError, describe_range
+from depgraph.graph import build_graph, format_graph
+from depgraph.nuget import NugetClient, NugetError
+from depgraph.repo_file import RepoFileError, load_repo_file, make_lookup
 
 DEFAULT_CONFIG = "config.toml"
 EXIT_OK = 0
 EXIT_CONFIG_ERROR = 1
 EXIT_REPOSITORY_ERROR = 3
-INDENT = "  "
 
 
 def build_parser():
@@ -27,31 +28,27 @@ def build_parser():
     return parser
 
 
-def format_dependencies(package):
-    """Сформировать строки вывода прямых зависимостей пакета.
+def make_source(config):
+    """Вернуть функцию получения прямых зависимостей пакета.
 
-    :param package: объект :class:`~depgraph.nuget.PackageInfo`.
-    :return: список строк.
+    В тестовом режиме зависимости берутся из файла, иначе —
+    из репозитория NuGet (последняя стабильная версия пакета,
+    зависимости всех целевых платформ). Обе функции принимают имя
+    пакета и возвращают список имён его прямых зависимостей.
     """
-    lines = [f"Пакет: {package.package_id} {package.version}"]
-    unique = package.unique_dependencies()
-    if not unique:
-        lines.append("Прямых зависимостей нет")
-        return lines
-    # Сначала — зависимости по каждой целевой платформе .NET,
-    # как они записаны в манифесте пакета.
-    lines.append("Прямые зависимости по целевым платформам:")
-    for group in package.groups:
-        lines.append(f"{INDENT}{group.target_framework}")
-        if not group.dependencies:
-            lines.append(f"{INDENT * 2}(нет зависимостей)")
-        for dependency in group.dependencies:
-            version = describe_range(dependency.version_range)
-            lines.append(f"{INDENT * 2}{dependency.package_id} ({version})")
-    # Затем — общий список без повторов: он нужен для построения графа.
-    lines.append(f"Всего прямых зависимостей: {len(unique)}")
-    lines.extend(f"{INDENT}{name}" for name in unique)
-    return lines
+    if config.test_mode:
+        repo = load_repo_file(config.repository)
+        return make_lookup(repo, config.repository)
+    client = NugetClient(config.repository)
+
+    def fetch_dependencies(name):
+        """Загрузить прямые зависимости пакета из NuGet."""
+        # Каждый пакет требует нескольких HTTP-запросов, поэтому
+        # показываем ход загрузки, чтобы было видно, что программа
+        # работает. Пишем в поток ошибок, чтобы не смешивать с графом.
+        print(f"Загрузка {name}...", file=sys.stderr)
+        return client.get_package(name).unique_dependencies()
+    return fetch_dependencies
 
 
 def print_error(message):
@@ -71,17 +68,13 @@ def main(argv=None):
         for message in error.errors:
             print_error(f"{args.config}: {message}")
         return EXIT_CONFIG_ERROR
-    if config.test_mode:
-        print_error("тестовый режим будет поддержан на этапе 3")
-        return EXIT_CONFIG_ERROR
     try:
-        client = NugetClient(config.repository)
-        package = client.get_package(config.package_name)
-    except NugetError as error:
+        source = make_source(config)
+        graph = build_graph(config.package_name, source)
+    except (NugetError, RepoFileError) as error:
         print_error(str(error))
         return EXIT_REPOSITORY_ERROR
-    # Этап 2: выводим прямые зависимости заданного пакета.
-    for line in format_dependencies(package):
+    for line in format_graph(graph):
         print(line)
     return EXIT_OK
 

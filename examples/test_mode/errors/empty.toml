@@ -1,0 +1,6 @@
+# Ошибка: в файле нет ни одного пакета.
+package_name = "A"
+repository = "examples/test_repos/errors/empty.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

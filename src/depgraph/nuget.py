@@ -280,16 +280,3 @@ def find_text(element, name):
     if child is None or child.text is None:
         return ""
     return child.text.strip()
-
-
-def describe_range(version_range):
-    """Записать диапазон версий NuGet в понятном виде.
-
-    Одиночная версия ``4.0.0`` в NuGet означает «4.0.0 или новее»,
-    интервалы вида ``[1.0, 2.0)`` выводятся как есть.
-    """
-    if not version_range:
-        return "любая версия"
-    if version_range[0] in "[(":
-        return version_range
-    return f">= {version_range}"

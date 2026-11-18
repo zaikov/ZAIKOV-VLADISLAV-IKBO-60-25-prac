@@ -1,0 +1,6 @@
+# Ошибка: имя пакета не из больших латинских букв.
+package_name = "A"
+repository = "examples/test_repos/errors/bad_name.txt"
+test_mode = true
+output_file = "graph.svg"
+ascii_tree = false

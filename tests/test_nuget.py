@@ -9,7 +9,7 @@ import unittest
 
 from depgraph.nuget import (
     ANY_FRAMEWORK, HTTP_NOT_FOUND, NugetClient, NugetError, PackageInfo,
-    describe_range, parse_nuspec,
+    parse_nuspec,
 )
 
 INDEX_URL = "https://repo.test/v3/index.json"
@@ -178,12 +178,6 @@ class NuspecTest(unittest.TestCase):
 
 class HelpersTest(unittest.TestCase):
     """Тесты вспомогательных функций."""
-
-    def test_describe_range(self):
-        """Диапазоны версий выводятся в понятном виде."""
-        self.assertEqual(describe_range("4.0.0"), ">= 4.0.0")
-        self.assertEqual(describe_range("[1.0, 2.0)"), "[1.0, 2.0)")
-        self.assertEqual(describe_range(""), "любая версия")
 
     def test_unique_ignores_case(self):
         """Повторы зависимостей ищутся без учёта регистра."""
