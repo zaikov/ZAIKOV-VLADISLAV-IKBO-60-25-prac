@@ -3,6 +3,8 @@
 Текстовое описание графа формируется на языке DOT (Graphviz),
 а изображение SVG строит внешняя программа ``dot`` из пакета
 Graphviz. Связи, входящие в циклы, выделяются красным цветом.
+Константы ``BRANCH``, ``LAST_BRANCH``, ``PIPE`` и ``SPACE`` — символы
+для рисования ASCII-дерева.
 """
 
 import subprocess
@@ -14,7 +16,6 @@ RENDER_TIMEOUT = 60
 ROOT_COLOR = "#c6dafc"
 NODE_COLOR = "#eef3fb"
 CYCLE_COLOR = "#d93025"
-# Символы для рисования ASCII-дерева.
 BRANCH = "├── "
 LAST_BRANCH = "└── "
 PIPE = "│   "
@@ -34,16 +35,21 @@ def quote(name):
 
 
 def cycle_edges(graph):
-    """Вернуть множество связей ``(пакет, зависимость)`` из циклов."""
+    """Вернуть множество связей ``(пакет, зависимость)`` из циклов.
+
+    Цикл ``[A, B, C, A]`` состоит из связей A->B, B->C и C->A.
+    """
     edges = set()
     for cycle in find_cycles(graph):
-        # Цикл [A, B, C, A] состоит из связей A->B, B->C, C->A.
         edges.update(zip(cycle, cycle[1:]))
     return edges
 
 
 def to_dot(graph):
     """Сформировать описание графа на языке Graphviz DOT.
+
+    Каждая вершина описывается явно: иначе пакет без зависимостей
+    и без входящих связей не попал бы на рисунок.
 
     :param graph: объект :class:`~depgraph.graph.DependencyGraph`.
     :return: текст на языке DOT.
@@ -58,8 +64,6 @@ def to_dot(graph):
         f'    {quote(graph.root)} [fillcolor="{ROOT_COLOR}", penwidth=2];',
     ]
     for name in graph.nodes():
-        # Пакет без зависимостей и без входящих связей иначе
-        # не попал бы на рисунок — описываем каждую вершину явно.
         lines.append(f"    {quote(name)};")
         for child in graph.edges[name]:
             style = ""
@@ -105,10 +109,13 @@ def ascii_tree(graph):
     с явным стеком. Пакет, уже показанный выше, повторно
     не разворачивается и помечается ``(*)``; связь, замыкающая цикл,
     помечается ``(цикл)``.
+
+    Элемент стека — кортеж (пакет, отступ, последний ли он у родителя,
+    предки). Зависимости кладутся в стек в обратном порядке, чтобы
+    первая оказалась наверху стека и была выведена первой.
     """
     lines = []
     shown = set()
-    # Элемент стека: (пакет, отступ, последний ли у родителя, предки).
     stack = [(graph.root, None, True, ())]
     while stack:
         name, prefix, last, ancestors = stack.pop()
@@ -121,8 +128,6 @@ def ascii_tree(graph):
         )
         children = graph.edges[name]
         last_index = len(children) - 1
-        # Кладём в стек в обратном порядке, чтобы первая зависимость
-        # оказалась наверху стека и была выведена первой.
         for index, child in reversed(list(enumerate(children))):
             stack.append((
                 child, child_prefix, index == last_index,

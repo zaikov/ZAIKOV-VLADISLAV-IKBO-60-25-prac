@@ -12,6 +12,17 @@
 
 Все найденные ошибки собираются в один список, чтобы пользователь
 увидел их сразу, а не исправлял по одной.
+
+Константы модуля:
+
+- ``FIELD_TYPES`` — параметры конфигурации и ожидаемые типы значений;
+- ``OPTIONAL_FIELDS`` — необязательные параметры, для них берётся
+  значение по умолчанию из класса :class:`Config`;
+- ``MAX_PACKAGE_NAME_LENGTH`` — ограничение длины имени пакета в NuGet;
+- ``NUGET_ID_PATTERN`` — имя пакета NuGet: латинские буквы, цифры
+  и «_», части разделяются точкой или дефисом (Serilog.Sinks.Console);
+- ``TEST_PACKAGE_PATTERN`` — имя пакета в тестовом репозитории:
+  большие латинские буквы.
 """
 
 import os
@@ -20,7 +31,6 @@ import tomllib
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-# Параметры конфигурации и ожидаемые типы значений в TOML.
 FIELD_TYPES = {
     "package_name": str,
     "repository": str,
@@ -29,19 +39,13 @@ FIELD_TYPES = {
     "ascii_tree": bool,
     "load_order": bool,
 }
-# Необязательные параметры: если не заданы, берётся значение
-# по умолчанию из класса Config.
 OPTIONAL_FIELDS = ("load_order",)
 TYPE_NAMES = {
     str: "строка",
     bool: "логическое значение true/false",
 }
-# Ограничение длины идентификатора пакета в NuGet.
 MAX_PACKAGE_NAME_LENGTH = 100
-# Идентификатор NuGet: латинские буквы, цифры и «_», части
-# разделяются точкой или дефисом, например Serilog.Sinks.Console.
 NUGET_ID_PATTERN = re.compile(r"[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*")
-# В тестовом репозитории пакеты называются большими латинскими буквами.
 TEST_PACKAGE_PATTERN = re.compile(r"[A-Z]+")
 URL_SCHEMES = ("http", "https")
 OUTPUT_EXTENSION = ".svg"
@@ -58,14 +62,17 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Config:
-    """Проверенные параметры, заданные пользователем."""
+    """Проверенные параметры, заданные пользователем.
+
+    ``load_order`` — режим вывода порядка загрузки зависимостей
+    вместо графа, по умолчанию выключен.
+    """
 
     package_name: str
     repository: str
     test_mode: bool
     output_file: str
     ascii_tree: bool
-    # Режим вывода порядка загрузки зависимостей вместо графа.
     load_order: bool = False
 
 
@@ -73,12 +80,13 @@ def load_config(path):
     """Прочитать и проверить конфигурационный файл.
 
     :param path: путь к файлу TOML.
+    Сначала проверяются набор ключей и типы значений: без этого
+    значения нельзя безопасно проверять по смыслу.
+
     :return: объект :class:`Config`.
     :raises ConfigError: если файл не читается или параметры неверны.
     """
     data = read_toml(path)
-    # Сначала проверяем набор ключей и типы: без этого значения
-    # нельзя безопасно проверять по смыслу.
     errors = check_keys(data) + check_types(data)
     if errors:
         raise ConfigError(errors)
@@ -92,10 +100,11 @@ def load_config(path):
 def read_toml(path):
     """Прочитать файл TOML и вернуть словарь параметров.
 
+    Модуль ``tomllib`` требует открывать файл в двоичном режиме.
+
     :raises ConfigError: если файл не найден или имеет неверный формат.
     """
     try:
-        # tomllib требует открывать файл в двоичном режиме.
         with open(path, "rb") as file:
             return tomllib.load(file)
     except FileNotFoundError:
@@ -124,11 +133,13 @@ def check_keys(data):
 
 
 def check_types(data):
-    """Проверить, что значения заданных параметров имеют нужный тип."""
+    """Проверить, что значения заданных параметров имеют нужный тип.
+
+    Тип сравнивается точно, а не через ``isinstance``: в Python ``bool``
+    является подклассом ``int``, и ``isinstance`` принял бы лишнее.
+    """
     errors = []
     for key, expected in FIELD_TYPES.items():
-        # Сравниваем тип точно: в Python bool — подкласс int,
-        # и isinstance принял бы лишние значения.
         if key in data and type(data[key]) is not expected:
             errors.append(
                 f"{key}: ожидается {TYPE_NAMES[expected]}, "
@@ -169,10 +180,12 @@ def validate_package_name(name, test_mode):
 
 
 def validate_repository(repository, test_mode):
-    """Проверить URL репозитория или путь к файлу тестового репозитория."""
+    """Проверить URL репозитория или путь к файлу тестового репозитория.
+
+    В тестовом режиме вместо URL указывается путь к файлу.
+    """
     if not repository.strip():
         return ["repository: не задан URL или путь к файлу репозитория"]
-    # В тестовом режиме вместо URL указывается путь к файлу.
     if test_mode:
         return validate_repository_file(repository)
     return validate_repository_url(repository)
@@ -199,7 +212,11 @@ def validate_repository_url(url):
 
 
 def validate_output_file(name):
-    """Проверить имя файла, в который будет сохранено изображение графа."""
+    """Проверить имя файла, в который будет сохранено изображение графа.
+
+    Кроме расширения проверяется, что перед ним есть имя файла
+    и что каталог для файла существует.
+    """
     if not name.strip():
         return ["output_file: имя файла не может быть пустым"]
     if not name.lower().endswith(OUTPUT_EXTENSION):
@@ -207,7 +224,6 @@ def validate_output_file(name):
             f"output_file: ожидается файл с расширением "
             f"{OUTPUT_EXTENSION}, получено '{name}'"
         ]
-    # Отрезаем расширение и проверяем, что перед ним есть имя.
     if not os.path.basename(name)[:-len(OUTPUT_EXTENSION)]:
         return [f"output_file: не задано имя файла перед '{name}'"]
     if os.path.isdir(name):

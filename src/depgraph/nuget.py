@@ -8,6 +8,10 @@
 2. ``{хранилище}/{id}/index.json`` — список версий пакета;
 3. ``{хранилище}/{id}/{версия}/{id}.nuspec`` — манифест пакета в XML,
    в разделе ``<dependencies>`` которого перечислены прямые зависимости.
+
+``PRERELEASE_MARK`` — признак предварительной версии (6.1.0-dev-02308),
+``ANY_FRAMEWORK`` — платформа для зависимостей, записанных в манифесте
+без группы.
 """
 
 import json
@@ -20,9 +24,7 @@ PACKAGE_BASE_TYPE = "PackageBaseAddress/3.0.0"
 REQUEST_TIMEOUT = 30
 USER_AGENT = "depgraph/0.2"
 HTTP_NOT_FOUND = 404
-# Предварительные версии содержат дефис: 6.1.0-dev-02308.
 PRERELEASE_MARK = "-"
-# Платформа для зависимостей, указанных в .nuspec без группы.
 ANY_FRAMEWORK = "any"
 
 
@@ -86,7 +88,6 @@ def fetch_url(url):
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as reply:
             return reply.read()
     except urllib.error.HTTPError as error:
-        # HTTPError — подкласс URLError, поэтому проверяется первым.
         raise NugetError(
             f"{url}: сервер вернул ошибку HTTP {error.code} {error.reason}",
             status=error.code,
@@ -115,8 +116,10 @@ class NugetClient:
         self._base_address = None
 
     def base_address(self):
-        """Вернуть адрес хранилища пакетов из индекса служб."""
-        # Индекс служб загружаем один раз и запоминаем адрес.
+        """Вернуть адрес хранилища пакетов из индекса служб.
+
+        Индекс служб загружается один раз, адрес запоминается.
+        """
         if self._base_address is None:
             index = parse_json(self._fetch(self.index_url), self.index_url)
             self._base_address = find_resource(
@@ -146,12 +149,12 @@ class NugetClient:
     def latest_version(self, package_id):
         """Вернуть последнюю стабильную версию пакета.
 
+        Хранилище отдаёт версии отсортированными по возрастанию.
         Если стабильных версий нет, возвращается последняя
         предварительная.
         """
         versions = self.versions(package_id)
         stable = [item for item in versions if PRERELEASE_MARK not in item]
-        # Хранилище отдаёт версии отсортированными по возрастанию.
         return (stable or versions)[-1]
 
     def get_package(self, package_id, version=None):
@@ -186,7 +189,11 @@ def parse_json(data, url):
 
 
 def find_resource(index, resource_type, url):
-    """Найти в индексе служб адрес ресурса заданного типа."""
+    """Найти в индексе служб адрес ресурса заданного типа.
+
+    Адрес используется как префикс других адресов, поэтому
+    при необходимости дополняется символом «/».
+    """
     resources = index.get("resources")
     if not isinstance(resources, list):
         raise NugetError(f"{url}: это не индекс служб NuGet v3")
@@ -195,7 +202,6 @@ def find_resource(index, resource_type, url):
             continue
         if resource.get("@type") == resource_type:
             address = str(resource.get("@id", ""))
-            # Адрес хранилища используется как префикс, нужен «/».
             return address if address.endswith("/") else address + "/"
     raise NugetError(f"{url}: в индексе служб нет ресурса {resource_type}")
 

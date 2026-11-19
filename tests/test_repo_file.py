@@ -7,7 +7,6 @@ import unittest
 from depgraph.graph import build_graph
 from depgraph.repo_file import RepoFileError, load_repo_file, make_lookup
 
-# Папка с примерами лежит в корне проекта, рядом с tests/.
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXAMPLES_DIR = os.path.join(PROJECT_DIR, "examples", "test_repos")
 
